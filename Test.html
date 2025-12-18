@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultimate PC Games Store</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,Helvetica,sans-serif;
+    background:#0b1020;
+    color:#fff;
+}
+header{
+    background:#171a2e;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+header h1{color:#66c0f4;margin:0;}
+header input{
+    padding:8px;
+    border-radius:5px;
+    border:none;
+    width:230px;
+}
+nav{
+    background:#11142a;
+    padding:10px;
+    text-align:center;
+}
+nav button{
+    background:#1b2140;
+    color:#fff;
+    border:none;
+    padding:8px 16px;
+    margin:5px;
+    border-radius:5px;
+    cursor:pointer;
+}
+nav button:hover{background:#66c0f4;color:#000;}
+
+main{display:flex;}
+
+#games{
+    flex:3;
+    padding:20px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:#1b2140;
+    border-radius:8px;
+    padding:15px;
+    text-align:center;
+}
+.card img{
+    width:100%;
+    border-radius:6px;
+}
+.card h3{color:#66c0f4;margin:10px 0 5px;}
+.card p{font-size:14px;line-height:1.4;}
+.price{color:#00ff99;font-weight:bold;margin-top:5px;}
+.card button{
+    width:100%;
+    margin-top:10px;
+    padding:8px;
+    background:#00ff99;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:5px;
+}
+
+#cart{
+    flex:1;
+    background:#11142a;
+    padding:20px;
+    border-left:2px solid #1b2140;
+}
+#cart h2{color:#66c0f4;}
+#cart ul{list-style:none;padding:0;}
+#cart li{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:10px;
+}
+#cart li button{
+    background:red;
+    border:none;
+    color:#fff;
+    cursor:pointer;
+    border-radius:3px;
+}
+
+.checkout{
+    width:100%;
+    padding:10px;
+    background:#66c0f4;
+    border:none;
+    font-size:16px;
+    cursor:pointer;
+    border-radius:5px;
+}
+
+/* MODAL */
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.7);
+    justify-content:center;
+    align-items:center;
+}
+.modal-content{
+    background:#1b2140;
+    padding:20px;
+    width:350px;
+    border-radius:8px;
+}
+.close{text-align:right;cursor:pointer;color:#ff7777;}
+.pay-btn{
+    width:100%;
+    padding:10px;
+    margin-top:15px;
+    background:#00ff99;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+}
+.success{color:#00ff99;text-align:center;margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🔥 Ultimate PC Games</h1>
+    <input id="search" placeholder="Search games...">
+</header>
+
+<nav>
+    <button onclick="filterGames('all')">All</button>
+    <button onclick="filterGames('Action')">Action</button>
+    <button onclick="filterGames('Open World')">Open World</button>
+    <button onclick="filterGames('RPG')">RPG</button>
+</nav>
+
+<main>
+<section id="games"></section>
+
+<aside id="cart">
+    <h2>🛒 Cart</h2>
+    <ul id="cartItems"></ul>
+    <p>Total: $<span id="total">0.00</span></p>
+    <button class="checkout" onclick="openCheckout()">Checkout</button>
+</aside>
+</main>
+
+<!-- PAYMENT MODAL -->
+<div class="modal" id="checkoutModal">
+<div class="modal-content">
+    <div class="close" onclick="closeCheckout()">✖</div>
+    <h2>Payment</h2>
+    <p>Total: $<span id="payTotal">0.00</span></p>
+    <button class="pay-btn" onclick="processPayment()">Confirm Payment</button>
+    <div id="successMsg" class="success"></div>
+</div>
+</div>
+
+<script>
+const gamesData=[
+{
+ id:1,
+ name:"Grand Theft Auto V",
+ category:"Open World",
+ price:29.99,
+ img:"https://upload.wikimedia.org/wikipedia/en/a/a5/Grand_Theft_Auto_V.png",
+ desc:"Open-world action game set in Los Santos with story mode and GTA Online."
+},
+{
+ id:2,
+ name:"Red Dead Redemption 2",
+ category:"Open World",
+ price:39.99,
+ img:"https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg",
+ desc:"Epic western adventure following outlaw Arthur Morgan in a living world."
+},
+{
+ id:3,
+ name:"Cyberpunk 2077",
+ category:"RPG",
+ price:34.99,
+ img:"https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg",
+ desc:"Futuristic open-world RPG set in Night City with deep story choices."
+},
+{
+ id:4,
+ name:"Elden Ring",
+ category:"RPG",
+ price:49.99,
+ img:"https://upload.wikimedia.org/wikipedia/en/b/b9/Elden_Ring_Box_art.jpg",
+ desc:"Dark fantasy action RPG with open exploration and challenging combat."
+},
+{
+ id:5,
+ name:"Call of Duty: Modern Warfare",
+ category:"Action",
+ price:44.99,
+ img:"https://upload.wikimedia.org/wikipedia/en/1/1f/Call_of_Duty_Modern_Warfare_%282019%29_cover.jpg",
+ desc:"High-intensity FPS featuring cinematic campaign and multiplayer modes."
+}
+];
+
+let cart=[],filter="all";
+const gamesEl=document.getElementById("games");
+const cartEl=document.getElementById("cartItems");
+const totalEl=document.getElementById("total");
+const payTotal=document.getElementById("payTotal");
+const search=document.getElementById("search");
+
+function renderGames(){
+ gamesEl.innerHTML="";
+ gamesData.filter(g=>{
+  return (filter==="all"||g.category===filter)&&
+  g.name.toLowerCase().includes(search.value.toLowerCase());
+ }).forEach(g=>{
+  gamesEl.innerHTML+=`
+   <div class="card">
+    <img src="${g.img}">
+    <h3>${g.name}</h3>
+    <p>${g.desc}</p>
+    <div class="price">$${g.price}</div>
+    <button onclick="addToCart(${g.id})">Add to Cart</button>
+   </div>`;
+ });
+}
+
+function addToCart(id){
+ cart.push(gamesData.find(g=>g.id===id));
+ updateCart();
+}
+function updateCart(){
+ cartEl.innerHTML="";
+ let t=0;
+ cart.forEach((i,x)=>{
+  t+=i.price;
+  cartEl.innerHTML+=`
+   <li>${i.name}
+   <button onclick="removeItem(${x})">✖</button></li>`;
+ });
+ totalEl.textContent=t.toFixed(2);
+ payTotal.textContent=t.toFixed(2);
+}
+function removeItem(i){cart.splice(i,1);updateCart();}
+function filterGames(c){filter=c;renderGames();}
+search.oninput=renderGames;
+
+function openCheckout(){
+ if(cart.length===0)return alert("Cart is empty");
+ document.getElementById("checkoutModal").style.display="flex";
+}
+function closeCheckout(){
+ document.getElementById("checkoutModal").style.display="none";
+ document.getElementById("successMsg").textContent="";
+}
+function processPayment(){
+ document.getElementById("successMsg").textContent=
+ "✅ Payment successful! Games will be delivered digitally.";
+ cart=[];
+ updateCart();
+}
+
+renderGames();
+</script>
+
+</body>
+</html>
